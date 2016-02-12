@@ -6,6 +6,16 @@ import com.ning.http.client.Response;
 import com.ning.http.client.oauth.OAuthSignatureCalculator;
 import com.ning.http.client.oauth.RequestToken;
 import common.Utils;
+import oauth.signpost.OAuthConsumer;
+import oauth.signpost.commonshttp.CommonsHttpOAuthConsumer;
+import oauth.signpost.signature.AuthorizationHeaderSigningStrategy;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.util.EntityUtils;
 import play.Logger;
 import play.Play;
 import play.libs.F;
@@ -18,6 +28,7 @@ import play.mvc.Result;
 import views.html.index;
 
 import java.net.URLDecoder;
+import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Future;
@@ -43,6 +54,14 @@ public class Application extends Controller {
 
     private static final OAuth Indivo = new OAuth(SERVICE_INFO);
 
+    /*
+      * Define any extra CORS headers needed for option requests (see http://enable-cors.org/server.html for more info)
+      */
+    public static Result preflight(String all) {
+        response().setHeader("Access-Control-Allow-Methods", "POST, GET, PUT, DELETE, OPTIONS");
+        response().setHeader("Access-Control-Allow-Headers", "*, Content-Type, Accept");
+        return ok();
+    }
     public Result index() {
         return ok(index.render("Hello RESTful Exercise!"));
     }
@@ -206,6 +225,158 @@ public class Application extends Controller {
 
         return ok(result);
     }
+
+
+    /**************************************************************************************
+     * This function will get list of Documents for the logged in Indivo User with the recordid
+     * Input : recordid, sessionid
+     * Output : Raw output from Indivo
+     */
+    public Result Documents() {
+
+        final Map<String, String[]> values = request().body().asFormUrlEncoded();
+
+        String sessionid = values.get("sessionid")[0];
+        String recordid = values.get("recordid")[0];
+
+        ObjectNode result = Json.newObject();
+
+        OAuthSignatureCalculator calc = null;
+
+        com.ning.http.client.oauth.ConsumerKey consumerAuth1 = new com.ning.http.client.oauth.ConsumerKey(
+                IndivoConsumerKey,IndivoConsumerSecret);
+        com.ning.http.client.oauth.RequestToken userAuth1 = new com.ning.http.client.oauth.RequestToken(
+                IndivoConfig.get("oauth_token"),IndivoConfig.get("oauth_token_secret"));
+
+        calc = new OAuthSignatureCalculator(consumerAuth1, userAuth1);
+        AsyncHttpClient client = new AsyncHttpClient();
+        client.setSignatureCalculator(calc);
+
+        try {
+            Future<Response> f = client.prepareGet(IndivoBaseUrl+ "records/" + recordid + "/documents/")
+                    .addHeader("Content-Type","application/x-www-form-urlencoded").execute();
+            String responseBody = f.get().getResponseBody();
+            if(responseBody.contains("Documents")){
+                return ok(Utils.getJsonFromXML(responseBody));
+            }else{
+                return ok(responseBody);
+            }
+
+        } catch (Exception e) {
+            Logger.debug("Exception while getting people" + e, e);
+        }
+
+        return ok(result);
+    }
+
+
+    /**************************************************************************************
+     * This function will get document details the logged in Indivo User with the recordid
+     * Input : recordid,documentid, sessionid
+     * Output : Raw output from Indivo
+     */
+    public Result getDocDetails() {
+
+        final Map<String, String[]> values = request().body().asFormUrlEncoded();
+
+        String sessionid = values.get("sessionid")[0];
+        String recordid = values.get("recordid")[0];
+        String docid = values.get("docid")[0];
+
+        ObjectNode result = Json.newObject();
+
+        OAuthSignatureCalculator calc = null;
+
+        com.ning.http.client.oauth.ConsumerKey consumerAuth1 = new com.ning.http.client.oauth.ConsumerKey(
+                IndivoConsumerKey,IndivoConsumerSecret);
+        com.ning.http.client.oauth.RequestToken userAuth1 = new com.ning.http.client.oauth.RequestToken(
+                IndivoConfig.get("oauth_token"),IndivoConfig.get("oauth_token_secret"));
+
+        calc = new OAuthSignatureCalculator(consumerAuth1, userAuth1);
+        AsyncHttpClient client = new AsyncHttpClient();
+        client.setSignatureCalculator(calc);
+
+        try {
+            Future<Response> f = client.prepareGet(IndivoBaseUrl+ "records/" + recordid + "/documents/"+docid)
+                    .addHeader("Content-Type","application/x-www-form-urlencoded").execute();
+            String responseBody = f.get().getResponseBody();
+            //if(responseBody.contains("Documents")){
+                return ok(Utils.getJsonFromXML(responseBody));
+            //}else{
+             //   return ok(responseBody);
+            //}
+
+        } catch (Exception e) {
+            Logger.debug("Exception while getting people" + e, e);
+        }
+
+        return ok(result);
+    }
+
+
+    /**************************************************************************************
+     * This function save vitals logged in Indivo User with the recordid
+     * Input : recordid,documentid, sessionid
+     * Output : Raw output from Indivo
+     */
+    public Result saveVitals() {
+
+        final Map<String, String[]> values = request().body().asFormUrlEncoded();
+
+        String sessionid = values.get("sessionid")[0];
+        String recordid = values.get("recordid")[0];
+
+        String vname = values.get("vname")[0];
+        String vvalue = values.get("vvalue")[0];
+        String vunit = values.get("vunit")[0];
+
+        java.util.Date date= new java.util.Date();
+        Timestamp now = new Timestamp(date.getTime());
+
+        String vitalxml = "<VitalSign xmlns=\"http://indivo.org/vocab/xml/documents#\"><name>"+vname+"</name>\n" +
+                " <measuredBy>"+IndivoConfig.get("account_id")+"</measuredBy>\n<dateMeasuredStart>"
+                + now + "</dateMeasuredStart>\n<dateMeasuredEnd>"
+                + now + "</dateMeasuredEnd>\n<result><value>"
+                + vvalue + "</value><unit>"+vunit+"</unit></result>\n</VitalSign>";
+
+        ObjectNode result = Json.newObject();
+
+        OAuthConsumer consumer = new CommonsHttpOAuthConsumer(IndivoConsumerKey,
+                IndivoConsumerSecret);
+        consumer.setTokenWithSecret(IndivoConfig.get("oauth_token"), IndivoConfig.get("oauth_token_secret"));
+
+        try {
+            HttpPost request = new HttpPost(IndivoBaseUrl+ "records/" + recordid + "/documents/");
+
+            StringEntity body = new StringEntity(vitalxml);
+            body.setContentType("application/xml");
+            request.setEntity(body);
+
+            consumer.setSigningStrategy(new AuthorizationHeaderSigningStrategy());
+            consumer.sign(request);
+
+
+            // send the request
+            HttpClient httpClient = new DefaultHttpClient();
+
+            HttpResponse response = httpClient.execute(request);
+
+            HttpEntity entity = response.getEntity();
+            String responseString = EntityUtils.toString(entity, "UTF-8");
+
+            //if(responseBody.contains("Documents")){
+            return ok(Utils.getJsonFromXML(responseString));
+            //}else{
+            //   return ok(responseBody);
+            //}
+
+        } catch (Exception e) {
+            Logger.debug("Exception while getting people" + e, e);
+        }
+
+        return ok(result);
+    }
+
     /**************************************************************************************
      * This function will create the Request Token
      * Input : None

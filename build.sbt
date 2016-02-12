@@ -9,7 +9,9 @@ scalaVersion := "2.11.6"
 libraryDependencies ++= Seq(
   javaJdbc,
   cache,
-  javaWs
+  javaWs,
+  filters,
+  "com.rethinkdb" % "rethinkdb-driver" % "2.2-beta-1"
 
 )
 

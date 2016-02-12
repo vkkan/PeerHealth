@@ -3,6 +3,9 @@
 # ~~~~
 
 # Home page
+
+OPTIONS   /*all                     @controllers.Application.preflight(all)
+
 GET     /                           controllers.Application.index()
 
 # Map static resources from the /public folder to the /assets URL path
@@ -14,11 +17,12 @@ POST    /records                    controllers.Application.Records()
 
 POST    /allergies                  controllers.Application.Allergies()
 
-# API ENDPOINTS
-#GET     /users/:id                  controllers.Application.getUser(id: Long)      #Exercise 2
-#POST    /users                      controllers.Application.createUser()           #Exercise 1
-#PUT     /users/:id                  controllers.Application.updateUser(id: Long)   #Exercise 3
-#DELETE  /users/:id                  controllers.Application.deleteUser(id: Long)   #Exercise 4
+POST    /docs                       controllers.Application.Documents()
+
+POST    /docdetails                 controllers.Application.getDocDetails()
+
+POST    /addvital                   controllers.Application.saveVitals()
+
 
 
 
