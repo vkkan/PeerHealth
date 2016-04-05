@@ -4,7 +4,7 @@
 
 # Home page
 
-OPTIONS   /*all                     @controllers.Application.preflight(all)
+#OPTIONS   /*all                     @controllers.Application.preflight(all)
 
 GET     /                           controllers.Application.index()
 
@@ -23,7 +23,33 @@ POST    /docdetails                 controllers.Application.getDocDetails()
 
 POST    /addvital                   controllers.Application.saveVitals()
 
+#POST    /check                      controllers.Application.checkDB()
 
+POST    /create                      controllers.Application.CreateAccount()
+
+POST    /plogin                  controllers.Application.PeerLogin()
+
+POST    /paccount                  controllers.Application.PeerAccount()
+
+POST    /pubyname                  controllers.Application.GetUserDetailsByUsername()
+
+POST    /pubyemail                  controllers.Application.GetUserDetailsByEmail()
+
+GET    /pgetpeers                  controllers.Application.GetMatchPeers(userid:String)
+
+GET    /pgetfriends                  controllers.Application.FriendsList(userid:String)
+
+GET    /pgetinvites                  controllers.Application.InvitedList(userid:String)
+
+POST    /pinvite                  controllers.Application.Invite()
+
+GET    /pgetprofile                  controllers.Application.UserProfile(userid:String)
+
+POST    /paccept                  controllers.Application.SendAccept()
+
+#GET    /psample                  controllers.Application.GetSample(userid:String)
+
+POST    /pconversation                  controllers.Application.AddConversation()
 
 
 
